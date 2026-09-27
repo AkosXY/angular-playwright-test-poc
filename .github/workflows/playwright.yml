@@ -4,6 +4,12 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     timeout-minutes: 60
@@ -23,22 +29,28 @@ jobs:
 
       - name: Run In-Memory E2E tests
         run: npx playwright test --project="In-Memory Tests"
-
-      - name: Upload In-Memory Report
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report-in-memory
-          path: playwright-report/
-          retention-days: 30
+        env:
+          PLAYWRIGHT_HTML_REPORT: playwright-report/in-memory
 
       - name: Run Network Mock E2E tests
         run: npx playwright test --project="Network Mock Tests"
+        env:
+          PLAYWRIGHT_HTML_REPORT: playwright-report/network-mock
 
-      - name: Upload Network Mock Report
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+      - name: Create Index Page for Reports
+        run: |
+          mkdir -p playwright-report
+          echo "<html><head><title>Playwright Test Reports</title></head><body style='font-family:sans-serif; padding:40px;'>" > playwright-report/index.html
+          echo "<h1>Playwright E2E Test Execution Reports</h1><hr/><ul style='line-height:2; font-size:18px;'>" >> playwright-report/index.html
+          echo "<li><a href='./in-memory/index.html'>In-Memory Test Report</a></li>" >> playwright-report/index.html
+          echo "<li><a href='./network-mock/index.html'>Network Mock Test Report</a></li>" >> playwright-report/index.html
+          echo "</ul></body></html>" >> playwright-report/index.html
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: playwright-report-network-mock
           path: playwright-report/
-          retention-days: 30
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
