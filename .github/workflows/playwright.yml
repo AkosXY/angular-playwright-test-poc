@@ -1,0 +1,44 @@
+name: Playwright E2E Tests
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run In-Memory E2E tests
+        run: npx playwright test --project="In-Memory Tests"
+
+      - name: Upload In-Memory Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-in-memory
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Run Network Mock E2E tests
+        run: npx playwright test --project="Network Mock Tests"
+
+      - name: Upload Network Mock Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-network-mock
+          path: playwright-report/
+          retention-days: 30
